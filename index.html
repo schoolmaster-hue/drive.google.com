@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Paper Conquest: World Tour</title>
+    
+    <!-- --- GOOGLE ADSENSE INTEGRATION START --- -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2344719724787837" crossorigin="anonymous"></script>
+    <script>
+        window.adsbygoogle = window.adsbygoogle || [];
+        window.adConfig = function(o) { adsbygoogle.push(o); }
+    </script>
+    <!-- --- GOOGLE ADSENSE INTEGRATION END --- -->
+
+    <style>
+        :root {
+            --primary: #2d3436;
+            --accent: #00b894;
+            --bg: #f5f6fa;
+            --font-main: 'Nunito', sans-serif;
+            --rarity-common: #b2bec3;
+            --rarity-rare: #0984e3;
+            --rarity-epic: #a29bfe;
+            --rarity-legendary: #fdcb6e;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--bg);
+            font-family: var(--font-main);
+            color: var(--primary);
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        #gameCanvas {
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 1;
+        }
+
+        /* UI Layer */
+        #ui-layer {
+            position: absolute;
+            width: 100%; height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* HUD */
+        .hud-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            pointer-events: none;
+        }
+        .stat-pill {
+            background: rgba(255,255,255,0.9);
+            padding: 10px 25px;
+            border-radius: 40px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            font-weight: 900;
+            font-size: 1.5rem;
+            color: #2d3436;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 2px solid rgba(255,255,255,0.5);
+            backdrop-filter: blur(5px);
+        }
+        .coin-icon {
+            width: 28px; height: 28px;
+            background: #fdcb6e;
+            border-radius: 50%;
+            border: 3px solid #e17055;
+            box-shadow: inset -3px -3px 0 rgba(0,0,0,0.2);
+        }
+        .star-icon {
+            width: 24px; height: 24px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem; color: #fdcb6e; 
+            text-shadow: 0 2px 0 #e1b12c;
+        }
+
+        .rank-badge-hud {
+            position: absolute;
+            top: 90px; left: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 8px 15px 8px 10px;
+            border-radius: 20px;
+            font-weight: 800;
+            font-size: 1rem;
+            box-shadow: 0 8px 20px rgba(108, 92, 231, 0.3);
+            display: flex; align-items: center; gap: 10px;
+            backdrop-filter: blur(5px);
+            border: 2px solid rgba(255,255,255,0.8);
+        }
+        .rank-icon-svg {
+            width: 30px; height: 30px;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));
+        }
+
+        .leaderboard {
+            position: absolute;
+            top: 90px; right: 20px;
+            background: rgba(255,255,255,0.85);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            min-width: 180px;
+            backdrop-filter: blur(5px);
+        }
+        .lb-entry {
+            display: flex; justify-content: space-between;
+            margin-bottom: 8px; font-weight: 800; font-size: 0.95rem;
+            align-items: center;
+        }
+        .lb-color { width: 12px; height: 12px; border-radius: 4px; display: inline-block; margin-right: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+        /* Menus */
+        .menu-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 20;
+            background: rgba(245, 246, 250, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            transition: opacity 0.3s;
+            backdrop-filter: blur(10px);
+        }
+        .hidden { opacity: 0; pointer-events: none; }
+
+        h1 {
+            font-size: 5rem;
+            margin: 0 0 20px 0;
+            background: linear-gradient(45deg, #2d3436, #636e72);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            font-weight: 900;
+            letter-spacing: -2px;
+            text-shadow: 4px 4px 0px rgba(0,0,0,0.1);
+            transform: rotate(-3deg);
+        }
+
+        .rank-display-container {
+            display: flex; align-items: center; gap: 15px; margin-bottom: 20px;
+            background: white; padding: 10px 30px; border-radius: 50px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .rank-text-large { font-size: 1.8rem; font-weight: 900; color: #2d3436; }
+
+        /* Buttons */
+        .btn-group { display: flex; gap: 20px; margin-top: 40px; flex-wrap: wrap; justify-content: center; }
+        .btn {
+            border: none;
+            padding: 20px 50px;
+            border-radius: 60px;
+            font-size: 1.4rem;
+            font-weight: 900;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-family: var(--font-main);
+            transition: transform 0.1s, box-shadow 0.1s;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn:hover { transform: translateY(-5px); }
+        .btn:active { transform: translateY(2px); }
+        
+        .btn-play { background: #00b894; color: white; box-shadow: 0 8px 0 #00896f, 0 20px 30px rgba(0,184,148,0.4); }
+        .btn-shop { background: #fdcb6e; color: #2d3436; box-shadow: 0 8px 0 #e1b12c, 0 20px 30px rgba(253,203,110,0.4); }
+        .btn-rank { background: #6c5ce7; color: white; box-shadow: 0 8px 0 #5f27cd, 0 20px 30px rgba(108, 92, 231, 0.4); }
+        .btn-world { background: #0984e3; color: white; box-shadow: 0 8px 0 #074b83, 0 20px 30px rgba(9, 132, 227, 0.4); }
+        .btn-data { background: #636e72; color: white; box-shadow: 0 8px 0 #2d3436, 0 20px 30px rgba(45, 52, 54, 0.4); font-size: 1rem; padding: 15px 30px; }
+        .btn-close { background: #ff7675; color: white; box-shadow: 0 6px 0 #d63031; font-size: 1.2rem; padding: 15px 40px; }
+        .btn-revive { background: #0984e3; color: white; box-shadow: 0 8px 0 #074e85; font-size: 1.2rem; padding: 15px 40px; animation: pulse 2s infinite; }
+
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+        /* World Menu Styles */
+        .world-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;
+            width: 90%; max-width: 800px; height: 60vh; overflow-y: auto; padding: 10px;
+        }
+        .world-card {
+            background: white; border-radius: 20px; padding: 20px;
+            position: relative; overflow: hidden; cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1); border: 4px solid transparent;
+            transition: transform 0.2s;
+        }
+        .world-card:hover { transform: scale(1.03); }
+        .world-card.active { border-color: #00b894; background: #e3fdf5; }
+        .world-card.locked { filter: grayscale(1); opacity: 0.7; pointer-events: none; }
+        .world-progress-bar {
+            height: 10px; background: #dfe6e9; border-radius: 5px; margin-top: 10px; overflow: hidden;
+        }
+        .world-progress-fill-card {
+            height: 100%; background: #00b894; width: 0%;
+        }
+        .world-complete-badge {
+            position: absolute; top: 10px; right: 10px; background: #fdcb6e; color: #2d3436;
+            padding: 5px 10px; border-radius: 10px; font-weight: bold; font-size: 0.8rem;
+            display: none;
+        }
+        .world-card.completed .world-complete-badge { display: block; }
+        
+        /* Save Menu */
+        textarea.save-input {
+            width: 80%; height: 100px;
+            border-radius: 10px; border: 2px solid #b2bec3;
+            padding: 10px; font-family: monospace; font-size: 0.9rem;
+            margin: 20px 0; resize: none;
+        }
+
+        /* Rank Ladder Styles */
+        .rank-ladder-wrapper {
+            background: #f1f2f6;
+            width: 90%;
+            max-width: 500px;
+            height: 60vh;
+            border-radius: 20px;
+            position: relative;
+            overflow-y: auto;
+            border: 4px solid #fff;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.05), 0 10px 30px rgba(0,0,0,0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column-reverse; /* Bottom to top */
+            align-items: center;
+            scroll-behavior: smooth;
+        }
+        .rank-step {
+            width: 95%; display: flex; align-items: center; justify-content: space-between; margin: 15px 0;
+            position: relative; z-index: 1; opacity: 0.6; transition: opacity 0.3s, transform 0.3s;
+            background: white; padding: 15px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .rank-step.active { opacity: 1; transform: scale(1.02); border: 2px solid #6c5ce7; }
+        .rank-step.locked { filter: grayscale(1); background: #dfe6e9; }
+        .rank-info { display:flex; align-items:center; gap:15px; }
+        .rank-info h3 { margin: 0; font-size: 1.1rem; color: #2d3436; }
+        .rank-info small { color: #b2bec3; font-weight: bold; }
+        .rank-rewards {
+            background: #ffeaa7; padding: 8px 15px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center; gap: 5px; font-weight: bold; color: #d35400;
+        }
+
+        /* Shop (SIDE-BY-SIDE LAYOUT) */
+        .shop-container { 
+            display: grid; 
+            grid-template-columns: 1fr 1.5fr; /* Crate 1 part, Skins 1.5 parts */
+            gap: 20px; 
+            width: 90%; 
+            max-width: 800px; 
+            height: 60vh; 
+        }
+        .skin-list {
+            background: white; border-radius: 20px; padding: 20px; 
+            overflow-y: auto; overflow-x: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); /* 3 COLUMNS */
+            gap: 10px; align-content: start;
+        }
+        .crate-section {
+            background: white; border-radius: 20px; 
+            display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; 
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .crate-box-small {
+            width: 150px; height: 150px; background: #2d3436; border-radius: 20px; position: relative; cursor: pointer;
+            transition: transform 0.2s; box-shadow: 0 10px 0 #000, 0 20px 40px rgba(0,0,0,0.3); margin-bottom: 20px; border: 8px solid #636e72;
+        }
+        .crate-box-small:hover { transform: scale(1.05); }
+        .crate-box-small::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; height: 80%; border: 4px dashed rgba(255,255,255,0.1); border-radius: 10px; }
+        .crate-box-small::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; background: #fdcb6e; border-radius: 8px; box-shadow: 0 4px 0 #e1b12c; border: 2px solid #2d3436; }
+
+        .skin-item { aspect-ratio: 1; border-radius: 12px; border: 3px solid #eee; cursor: pointer; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: transform 0.1s; background: #fff; }
+        .skin-item:hover { transform: scale(1.05); }
+        .skin-item.equipped { border-color: #00b894; background: #e0fbf6; }
+        .skin-item.locked { opacity: 0.5; filter: grayscale(1); background: #f0f2f5; }
+        
+        .skin-icon-container { width: 50px; height: 50px; position: relative; margin-bottom: 5px; }
+        .skin-block { width: 100%; height: 100%; border-radius: 4px; position: absolute; top: 0; left: 0; box-shadow: 0 4px 0 rgba(0,0,0,0.2); }
+        .face-eyes { position: absolute; top: 35%; left: 20%; width: 60%; height: 20%; display: flex; justify-content: space-between; }
+        .face-eyes::before, .face-eyes::after { content: ''; width: 6px; height: 6px; background: rgba(255,255,255,0.9); border-radius: 50%; }
+        .face-creeper { position: absolute; top: 20%; left: 20%; width: 60%; height: 60%; }
+        .fc-eye-l, .fc-eye-r { position: absolute; top: 0; width: 30%; height: 30%; background: #000; }
+        .fc-eye-l { left: 0; } .fc-eye-r { right: 0; }
+        .fc-mouth { position: absolute; bottom: 0; left: 25%; width: 50%; height: 40%; background: #000; }
+        .fc-nose { position: absolute; top: 30%; left: 35%; width: 30%; height: 40%; background: #000; }
+        .face-sus { position: absolute; top: 30%; left: 20%; width: 70%; height: 40%; background: #dfe6e9; border-radius: 5px; }
+        .face-ninja { position: absolute; top: 20%; left: 0; width: 100%; height: 60%; background: #2d3436; border-radius: 4px; }
+        .fn-slit { position: absolute; top: 30%; left: 10%; width: 80%; height: 40%; background: #ffeaa7; border-radius: 2px; }
+        .fn-eye-l, .fn-eye-r { width: 20%; height: 40%; background: #000; position: absolute; top: 30%; border-radius: 50%; }
+        .fn-eye-l { left: 20%; } .fn-eye-r { right: 20%; }
+        .face-robot { position: absolute; top:20%; left:10%; width:80%; height:60%; background:#b2bec3; border:2px solid #636e72; }
+        .fr-eye { position: absolute; top:30%; left:10%; width:80%; height:20%; background:#000; }
+        .fr-pupil { width: 40%; height: 80%; background: #ff7675; margin: 1px auto; animation: scan 2s infinite alternate; }
+        .face-king { position: absolute; top:-10%; left:10%; width:80%; height:30%; background:#f1c40f; clip-path: polygon(0% 100%, 20% 0%, 40% 100%, 60% 0%, 80% 100%, 100% 0%, 100% 100%, 0% 100%); }
+        .fk-eyes { position: absolute; top:40%; left:20%; width:60%; height:20%; display:flex; justify-content:space-between; }
+        .fk-eye { width: 8px; height: 8px; background: black; border-radius: 50%; }
+        
+        .rarity-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; }
+
+        /* Fullscreen Crate Animation */
+        #crate-opening-scene { background: radial-gradient(circle, #636e72 0%, #2d3436 100%); z-index: 60; perspective: 1000px; }
+        .big-crate { width: 200px; height: 200px; background: #2d3436; border-radius: 30px; position: relative; box-shadow: 0 20px 0 #000, 0 40px 60px rgba(0,0,0,0.5); border: 10px solid #636e72; }
+        .big-crate::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; height: 80%; border: 6px dashed rgba(255,255,255,0.1); border-radius: 20px; }
+        .big-crate::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; background: #fdcb6e; border-radius: 12px; box-shadow: 0 6px 0 #e1b12c; border: 3px solid #2d3436; }
+        .anim-enter { animation: crateDrop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .anim-shake { animation: crateShake 0.1s infinite; }
+        .anim-open { animation: crateOpen 0.3s forwards; opacity: 0; transform: scale(1.5); }
+        @keyframes crateDrop { from { transform: translateY(-500px) rotate(20deg); opacity: 0; } to { transform: translateY(0) rotate(0deg); opacity: 1; } }
+        @keyframes crateShake { 0% { transform: translate(2px, 2px) rotate(2deg); } 50% { transform: translate(-2px, -2px) rotate(-2deg); } 100% { transform: translate(2px, -2px) rotate(2deg); } }
+        @keyframes crateOpen { to { transform: scale(2); opacity: 0; } }
+
+        #reward-modal { background: rgba(0,0,0,0.8); z-index: 70; backdrop-filter: blur(10px); }
+        .reward-card { background: white; padding: 50px; border-radius: 40px; text-align: center; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; align-items: center; box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+        .reward-glow { width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 70%); position: absolute; z-index: -1; animation: rotate 10s linear infinite; }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        #reward-icon { transform: scale(2); margin: 40px; }
+
+        #kill-feed { position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column-reverse; gap: 8px; pointer-events: none; }
+        .kill-msg { background: rgba(45, 52, 54, 0.9); color: white; padding: 10px 20px; border-radius: 30px; font-weight: 800; font-size: 1rem; animation: slideUp 2s forwards; box-shadow: 0 5px 15px rgba(0,0,0,0.2); text-transform: uppercase; }
+        @keyframes slideUp { 0% { opacity: 0; transform: translateY(20px) scale(0.8); } 10% { opacity: 1; transform: translateY(0) scale(1.1); } 20% { transform: scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-30px); } }
+
+        /* Ad Overlay */
+        #ad-overlay {
+            position: absolute; top:0; left:0; width:100%; height:100%;
+            background: #000; z-index: 100;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: white;
+        }
+        .ad-timer { font-size: 4rem; font-weight: 900; margin-bottom: 20px; }
+        .ad-text { font-size: 1.5rem; color: #b2bec3; }
+
+        /* Mobile */
+        #mobile-controls { position: absolute; bottom: 30px; left: 30px; width: 150px; height: 150px; pointer-events: auto; display: none; }
+        .joystick-base { width: 100%; height: 100%; background: rgba(0,0,0,0.05); border-radius: 50%; border: 2px solid rgba(0,0,0,0.1); position: relative; }
+        .joystick-stick { width: 35%; height: 35%; background: white; border-radius: 50%; position: absolute; top: 32.5%; left: 32.5%; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        
+        #domination-mode {
+            position: absolute; top: 20%; width: 100%; text-align: center;
+            font-size: 3rem; font-weight: 900; color: #ff7675; text-transform: uppercase;
+            text-shadow: 0 0 20px rgba(255, 82, 82, 0.8);
+            transform: scale(0); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none; z-index: 15;
+        }
+        #domination-mode.active { transform: scale(1); }
+        
+        /* Unlock Animation */
+        #unlock-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 80;
+            background: rgba(0,184,148,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.5s;
+        }
+        #unlock-overlay.visible { opacity: 1; pointer-events: auto; }
+        .unlock-title { font-size: 3rem; color: #fff; font-weight: 900; text-transform: uppercase; animation: popIn 0.5s 0.2s backwards; }
+        .unlock-subtitle { font-size: 1.5rem; color: #2d3436; font-weight: bold; margin-bottom: 30px; animation: popIn 0.5s 0.4s backwards; }
+
+        /* 100% Bonus UI */
+        #bonus-ui {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            background: #f1c40f; color: #d35400; padding: 10px 30px; border-radius: 30px;
+            font-weight: 900; font-size: 2rem; border: 4px solid #fff; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            z-index: 50; display: none; animation: pulse 0.5s infinite;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Game HUD -->
+    <div id="ui-layer">
+        <div class="hud-header">
+            <div class="stat-pill">
+                <span id="score-display">0.0%</span>
+            </div>
+            <div class="stat-pill">
+                <div class="coin-icon"></div>
+                <span id="coin-display">0</span>
+            </div>
+        </div>
+        
+        <div id="domination-mode">DOMINATION MODE</div>
+        <div id="bonus-ui">BONUS ROUND! <span id="bonus-timer">5</span>s</div>
+        
+        <div class="rank-badge-hud" id="hud-rank">
+            <div id="hud-rank-icon"></div>
+            <span id="hud-rank-text">Bronze I</span>
+            <div class="star-icon">★</div>
+            <span id="hud-stars">0</span>
+        </div>
+        
+        <div class="leaderboard" id="leaderboard"></div>
+        <div id="kill-feed"></div>
+
+        <div id="mobile-controls">
+            <div class="joystick-base" id="joystick"><div class="joystick-stick" id="stick"></div></div>
+        </div>
+    </div>
+    
+    <!-- Unlock Overlay -->
+    <div id="unlock-overlay">
+        <h1 style="color:#2d3436; font-size:4rem; margin:0;">CONGRATS!</h1>
+        <div class="unlock-title" id="unlock-msg">NEW WORLD UNLOCKED</div>
+        <div class="unlock-subtitle" id="unlock-sub">You have conquered 100% of this world!</div>
+        <button class="btn btn-shop" onclick="document.getElementById('unlock-overlay').classList.remove('visible')">AWESOME</button>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="start-menu" class="menu-overlay" style="z-index: 30;">
+        <h1 style="font-size: 4rem;">Paper<br>Conquest</h1>
+        <div class="rank-display-container">
+            <div id="menu-rank-icon"></div>
+            <div class="rank-text-large" id="menu-rank">Rank: Bronze I</div>
+        </div>
+        
+        <div class="world-progress-container">
+            <div class="world-progress-fill" id="menu-world-fill"></div>
+            <div class="world-progress-text" id="menu-world-text">Domination: 0%</div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-play" onclick="game.start()">Conquer</button>
+            <button class="btn btn-rank" onclick="rankMenu.open()">My Rank</button>
+            <button class="btn btn-world" onclick="worldMenu.open()">Worlds</button>
+            <button class="btn btn-shop" onclick="shop.open()">Crates</button>
+            <button class="btn btn-data" onclick="saveMenu.open()">Data</button>
+        </div>
+        
+        <div style="margin-top:20px; font-weight:bold; color:#b2bec3;">Total Coins: <span id="menu-coins">0</span></div>
+    </div>
+
+    <!-- World Menu -->
+    <div id="world-menu" class="menu-overlay hidden" style="z-index: 35;">
+        <h1>PLANETARY MAP</h1>
+        <div class="world-grid" id="world-grid"></div>
+        <button class="btn btn-close" onclick="worldMenu.close()">Back</button>
+    </div>
+
+    <!-- Rank Menu -->
+    <div id="rank-menu" class="menu-overlay hidden" style="z-index: 35;">
+        <div style="display:flex; justify-content:space-between; width:90%; max-width:500px; margin-bottom:10px; align-items:center;">
+            <h1 style="font-size: 2rem; margin: 0;">RANK LADDER</h1>
+            <div class="stat-pill"><div class="star-icon">★</div><span id="ladder-total-stars">0</span></div>
+        </div>
+        <div class="rank-ladder-wrapper" id="rank-ladder"></div>
+        <button class="btn btn-close" onclick="rankMenu.close()" style="margin-top: 20px;">Back</button>
+    </div>
+
+    <!-- Save/Load Menu -->
+    <div id="save-menu" class="menu-overlay hidden" style="z-index: 45;">
+        <h1>DATA MANAGER</h1>
+        <p style="color:#636e72;">Copy this key to save your progress, or paste one to load.</p>
+        <textarea id="save-key-box" class="save-input"></textarea>
+        <div class="btn-group">
+            <button class="btn btn-rank" onclick="saveMenu.copy()">Copy Key</button>
+            <button class="btn btn-play" onclick="saveMenu.load()">Load Key</button>
+        </div>
+        <button class="btn btn-close" onclick="saveMenu.close()">Back</button>
+    </div>
+
+    <!-- Ad Overlay -->
+    <div id="ad-overlay" class="hidden">
+        <div class="ad-text">WATCHING AD...</div>
+        <div class="ad-timer" id="ad-timer">3</div>
+        <div style="margin-top:20px; color:#636e72; font-size:0.8rem;">(This is a simulated ad for the demo)</div>
+    </div>
+
+    <!-- Shop / Crates -->
+    <div id="shop-menu" class="menu-overlay hidden" style="z-index: 35;">
+        <h1>Armory</h1>
+        <div class="stat-pill" style="margin-bottom: 20px;">
+            <div class="coin-icon"></div>
+            <span id="shop-coins">0</span>
+        </div>
+        <div class="shop-container">
+            <div class="crate-section">
+                <div style="font-size:1.5rem; font-weight:900; margin-bottom:20px; color:#2d3436;">LOOT CRATE</div>
+                <div class="crate-box-small" id="crate-box-btn" onclick="shop.buyCrate()"></div>
+                <button class="btn btn-shop" onclick="shop.buyCrate()">Open (500)</button>
+                <div style="margin-top:15px; font-size:0.8rem; color:#636e72; text-align:center;">
+                    <span style="color:var(--rarity-common)">Contains Stars & Skins!</span><br>
+                    <span style="color:var(--rarity-legendary)">Guaranteed +10 Rank Stars</span>
+                </div>
+            </div>
+            <div class="skin-list" id="skin-grid"></div>
+        </div>
+        
+        <!-- BACK BUTTON POSITIONED CORRECTLY -->
+        <button class="btn btn-close" style="margin-top:20px;" onclick="shop.close()">Back</button>
+    </div>
+
+    <!-- Fullscreen Crate Animation Overlay -->
+    <div id="crate-opening-scene" class="menu-overlay hidden">
+        <div id="big-crate" class="big-crate"></div>
+        <div style="margin-top: 50px; color:white; font-weight:bold; font-size:1.2rem; opacity:0.7;">Opening...</div>
+    </div>
+
+    <!-- Reward Popup -->
+    <div id="reward-modal" class="menu-overlay hidden">
+        <div class="reward-card">
+            <div class="reward-glow" id="reward-glow"></div>
+            <h2 style="margin:0 0 10px 0;">UNLOCKED!</h2>
+            <div id="reward-icon" class="skin-icon-container"></div>
+            <div id="reward-name" style="font-size:1.5rem; font-weight:900; margin-bottom:5px;">Skin Name</div>
+            <div id="reward-rarity" style="font-weight:bold; color:#aaa; margin-bottom:20px;">RARITY</div>
+            <div style="background:#f1c40f; padding:10px 20px; border-radius:20px; color:#fff; font-weight:900; margin-bottom:15px; box-shadow:0 4px 0 #d35400;">
+                +10 RANK STARS ★
+            </div>
+            <button class="btn btn-play" onclick="shop.closeReward()">Awesome!</button>
+        </div>
+    </div>
+
+    <!-- Pause/Game Over -->
+    <div id="pause-menu" class="menu-overlay hidden" style="z-index: 40;">
+        <h1 id="pause-title">PAUSED</h1>
+        <div id="pause-stats" style="text-align:center; margin-bottom:20px;">
+            <div style="font-size:2rem; font-weight:900; color:#00b894;" id="pause-score">0%</div>
+            <div style="color:#636e72;">Area Captured</div>
+            <div style="margin-top:10px; font-weight:bold; color:#fdcb6e; font-size:1.2rem;" id="pause-rewards"></div>
+        </div>
+        <button class="btn btn-revive" onclick="game.startRevive()" id="btn-revive">Revive (Watch Ad)</button>
+        <button class="btn btn-play" onclick="game.resume()" id="btn-resume">Resume</button>
+        <button class="btn btn-close" onclick="game.toMenu()">Main Menu</button>
+    </div>
+
+    <script>
+        /** PAPER CONQUEST: WORLD TOUR **/
+
+        const WORLDS = [
+            { id: 'earth', name: 'Home Garden', color: '#f5f6fa', border: '#2d3436' },
+            { id: 'desert', name: 'Sandy Dunes', color: '#f7f1e3', border: '#ccae62' },
+            { id: 'ice', name: 'Frozen Tundra', color: '#dff9fb', border: '#22a6b3' },
+            { id: 'magma', name: 'Molten Core', color: '#ffeaa7', border: '#d35400' },
+            { id: 'space', name: 'Deep Space', color: '#2c3e50', border: '#ecf0f1' }
+        ];
+
+        const RANK_DEF = [
+            { name: "Bronze I", stars: 0, reward: 0, type: "bronze" },
+            { name: "Bronze II", stars: 50, reward: 200, type: "bronze" },
+            { name: "Bronze III", stars: 120, reward: 300, type: "bronze" },
+            { name: "Silver I", stars: 200, reward: 500, type: "silver" },
+            { name: "Silver II", stars: 300, reward: 600, type: "silver" },
+            { name: "Silver III", stars: 420, reward: 700, type: "silver" },
+            { name: "Gold I", stars: 560, reward: 1000, type: "gold" },
+            { name: "Gold II", stars: 720, reward: 1200, type: "gold" },
+            { name: "Gold III", stars: 900, reward: 1500, type: "gold" },
+            { name: "Platinum I", stars: 1200, reward: 2000, type: "platinum" },
+            { name: "Platinum II", stars: 1400, reward: 2200, type: "platinum" },
+            { name: "Platinum III", stars: 1600, reward: 2500, type: "platinum" },
+            { name: "Diamond I", stars: 2000, reward: 3000, type: "diamond" },
+            { name: "Diamond II", stars: 2400, reward: 3500, type: "diamond" },
+            { name: "Diamond III", stars: 2800, reward: 4000, type: "diamond" },
+            { name: "Master I", stars: 3500, reward: 5000, type: "master" },
+            { name: "Master II", stars: 4000, reward: 6000, type: "master" },
+            { name: "Master III", stars: 4500, reward: 7000, type: "master" },
+            { name: "Legend I", stars: 5500, reward: 10000, type: "legend" },
+            { name: "Legend II", stars: 6500, reward: 12000, type: "legend" },
+            { name: "Legend III", stars: 7500, reward: 15000, type: "legend" }
+        ];
+
+        const getRankIcon = (type) => {
+            const colors = {
+                bronze: '#cd7f32', silver: '#bdc3c7', gold: '#f1c40f',
+                platinum: '#00cec9', diamond: '#0984e3', master: '#d63031', legend: '#6c5ce7'
+            };
+            const c = colors[type] || colors.bronze;
+            if(type === 'bronze') return `<svg viewBox="0 0 24 24" class="rank-icon-svg"><circle cx="12" cy="12" r="10" fill="${c}"/></svg>`;
+            if(type === 'silver') return `<svg viewBox="0 0 24 24" class="rank-icon-svg"><path d="M12 2L2 7v6c0 5.5 3.8 10.7 10 12 6.2-1.3 10-6.5 10-12V7l-10-5z" fill="${c}"/></svg>`;
+            if(type === 'gold') return `<svg viewBox="0 0 24 24" class="rank-icon-svg"><path d="M12 2L2 7v6c0 5.5 3.8 10.7 10 12 6.2-1.3 10-6.5 10-12V7l-10-5z" fill="${c}"/><circle cx="12" cy="12" r="4" fill="#fff" opacity="0.5"/></svg>`;
+            if(type === 'platinum') return `<svg viewBox="0 0 24 24" class="rank-icon-svg"><rect x="4" y="4" width="16" height="16" transform="rotate(45 12 12)" fill="${c}"/></svg>`;
+            if(type === 'diamond') return `<svg viewBox="0 0 24 24" class="rank-icon-svg"><path d="M12 2l10 6-10 14L2 8z" fill="${c}"/></svg>`;
+            if(type === 'master') return `<svg viewBox="0 0 24 24" class="rank-icon-svg"><path d="M12 1L3 5v6c0 5.5 5 10.5 9 12 4-1.5 9-6.5 9-12V5l-9-4z" fill="${c}"/><path d="M12 6l2 4 4 1-3 3 1 4-4-2-4 2 1-4-3-3 4-1z" fill="#fff"/></svg>`;
+            if(type === 'legend') return `<svg viewBox="0 0 24 24" class="rank-icon-svg"><path d="M2 4l3 12h14l3-12-6 4-4-6-4 6z" fill="${c}"/></svg>`;
+            return '';
+        };
+        
+        const RARITY = {
+            common: { color: '#b2bec3', name: 'Common', prob: 0.60 },
+            rare: { color: '#0984e3', name: 'Rare', prob: 0.30 },
+            epic: { color: '#a29bfe', name: 'Epic', prob: 0.09 },
+            legendary: { color: '#fdcb6e', name: 'Legendary', prob: 0.01 },
+            mythic: { color: '#ff7675', name: 'Mythic', prob: 0.00 } // Special skins
+        };
+
+        const SKINS = [
+            { id: 'red', name: 'Red', color: '#ff7675', rarity: 'common' },
+            { id: 'blue', name: 'Blue', color: '#74b9ff', rarity: 'common' },
+            { id: 'green', name: 'Green', color: '#55efc4', rarity: 'common' },
+            { id: 'yellow', name: 'Yellow', color: '#ffeaa7', rarity: 'common' },
+            { id: 'purple', name: 'Purple', color: '#a29bfe', rarity: 'rare' },
+            { id: 'orange', name: 'Orange', color: '#fab1a0', rarity: 'rare' },
+            { id: 'mint', name: 'Mint', color: '#00b894', rarity: 'rare' },
+            { id: 'night', name: 'Midnight', color: '#2d3436', rarity: 'epic' },
+            { id: 'pink', name: 'Hot Pink', color: '#fd79a8', rarity: 'epic' },
+            { id: 'gold', name: 'Midas', color: '#fdcb6e', rarity: 'legendary' },
+            { id: 'creeper', name: 'Creeper', color: '#55efc4', type: 'face', face: 'creeper', rarity: 'epic' },
+            { id: 'sus', name: 'Imposter', color: '#d63031', type: 'face', face: 'sus', rarity: 'legendary' },
+            { id: 'toxic', name: 'Toxic', color: '#badc58', rarity: 'rare' },
+            { id: 'ocean', name: 'Deep Sea', color: '#0c2461', rarity: 'epic' },
+            // New Skins
+            { id: 'ninja', name: 'Ninja', color: '#2d3436', type: 'face', face: 'ninja', rarity: 'rare' },
+            { id: 'robot', name: 'Bot 2.0', color: '#b2bec3', type: 'face', face: 'robot', rarity: 'rare' },
+            { id: 'vampire', name: 'Dracula', color: '#dfe6e9', type: 'face', face: 'vampire', rarity: 'epic' },
+            { id: 'pumpkin', name: 'Jack', color: '#e17055', type: 'face', face: 'pumpkin', rarity: 'epic' },
+            { id: 'hacker', name: 'Hacker', color: '#00b894', type: 'face', face: 'hacker', rarity: 'legendary' },
+            { id: 'king', name: 'The King', color: '#f1c40f', type: 'face', face: 'king', rarity: 'legendary' }
+        ];
+        
+        const BOT_NAMES = ["Specter", "Vortex", "Shadow", "Titan", "Fury", "Blaze", "Storm", "Pulse", "Nova", "Rogue"];
+
+        const Store = {
+            data: { 
+                coins: 0, 
+                stars: 0, 
+                worldProgress: [0, 0, 0, 0, 0], // Progress for each world
+                activeWorld: 0,
+                unlocked: ['red', 'blue', 'green'], 
+                equipped: 'red' 
+            },
+            init() {
+                const s = localStorage.getItem('paper_conquest_v5');
+                if(s) try { 
+                    const parsed = JSON.parse(s);
+                    if(parsed.worldProgress === undefined) parsed.worldProgress = [parsed.worldPercent || 0, 0, 0, 0, 0];
+                    if(parsed.activeWorld === undefined) parsed.activeWorld = 0;
+                    this.data = {...this.data, ...parsed}; 
+                } catch(e){}
+                this.updateUI();
+            },
+            save() { localStorage.setItem('paper_conquest_v5', JSON.stringify(this.data)); this.updateUI(); },
+            
+            getExportString() { return btoa(JSON.stringify(this.data)); },
+            loadFromString(str) {
+                try {
+                    const parsed = JSON.parse(atob(str));
+                    if(parsed.coins !== undefined && parsed.unlocked) {
+                        this.data = parsed; this.save(); return true;
+                    }
+                } catch(e) { console.error(e); }
+                return false;
+            },
+
+            getCurrentRank() {
+                let idx = 0;
+                for(let i=0; i<RANK_DEF.length; i++) {
+                    if(this.data.stars >= RANK_DEF[i].stars) idx = i;
+                    else break;
+                }
+                return { ...RANK_DEF[idx], index: idx };
+            },
+            updateUI() {
+                document.getElementById('menu-coins').innerText = this.data.coins;
+                document.getElementById('coin-display').innerText = this.data.coins;
+                document.getElementById('shop-coins').innerText = this.data.coins;
+                
+                const rank = this.getCurrentRank();
+                const iconHtml = getRankIcon(rank.type);
+                document.getElementById('menu-rank').innerText = rank.name;
+                document.getElementById('menu-rank-icon').innerHTML = iconHtml;
+                document.getElementById('hud-rank-text').innerText = rank.name;
+                document.getElementById('hud-stars').innerText = this.data.stars;
+                document.getElementById('hud-rank-icon').innerHTML = iconHtml;
+            },
+            addWorldProgress(pct) { 
+                const currentW = this.data.activeWorld;
+                const oldProg = this.data.worldProgress[currentW];
+                this.data.worldProgress[currentW] += pct;
+                
+                if(oldProg < 100 && this.data.worldProgress[currentW] >= 100) {
+                    document.getElementById('unlock-msg').innerText = "WORLD UNLOCKED";
+                    document.getElementById('unlock-sub').innerText = `You conquered ${WORLDS[currentW].name}!`;
+                    document.getElementById('unlock-overlay').classList.add('visible');
+                }
+                
+                this.save(); 
+            },
+            addStars(amount) { this.data.stars += amount; this.save(); },
+            addCoins(amount) { this.data.coins += amount; this.save(); },
+            unlock(id) { if(!this.data.unlocked.includes(id)) { this.data.unlocked.push(id); this.save(); } }
+        };
+
+        const AudioSys = {
+            ctx: null,
+            init() { try { const AC = window.AudioContext || window.webkitAudioContext; this.ctx = new AC(); } catch(e) {} },
+            play(type) {
+                if(!this.ctx) return;
+                const t = this.ctx.currentTime; const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
+                o.connect(g); g.connect(this.ctx.destination);
+                if(type==='coin') {
+                    o.frequency.setValueAtTime(1200,t); o.frequency.exponentialRampToValueAtTime(2000,t+0.1);
+                    g.gain.setValueAtTime(0.1,t); g.gain.linearRampToValueAtTime(0,t+0.1);
+                    o.start(t); o.stop(t+0.1);
+                } else if(type==='capture') {
+                    o.frequency.setValueAtTime(300,t); o.frequency.linearRampToValueAtTime(600,t+0.2);
+                    g.gain.setValueAtTime(0.1,t); g.gain.linearRampToValueAtTime(0,t+0.2);
+                    o.start(t); o.stop(t+0.2);
+                } else if(type==='kill') {
+                    o.type='sawtooth'; o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(50,t+0.4);
+                    g.gain.setValueAtTime(0.1,t); g.gain.linearRampToValueAtTime(0,t+0.4);
+                    o.start(t); o.stop(t+0.4);
+                }
+            }
+        };
+        
+        const AdManager = {
+            isReady: false,
+            init() { if(window.adsbygoogle && window.adConfig) { this.isReady = true; } },
+            showRewardAd(onSuccess, onFailure) {
+                if(typeof adBreak !== 'undefined') {
+                    adBreak({
+                        type: 'reward', name: 'revive_reward',
+                        beforeAd: () => { game.state = 'AD'; },
+                        afterAd: () => { },
+                        beforeReward: (showAdFn) => { showAdFn(); },
+                        adDismissed: () => { if(onFailure) onFailure(); },
+                        adViewed: () => { if(onSuccess) onSuccess(); }
+                    });
+                } else {
+                    this.playSimulatedAd(onSuccess);
+                }
+            },
+            playSimulatedAd(callback) {
+                document.getElementById('pause-menu').classList.add('hidden');
+                document.getElementById('ad-overlay').classList.remove('hidden');
+                let t = 3;
+                const timerEl = document.getElementById('ad-timer');
+                timerEl.innerText = t;
+                const interval = setInterval(() => {
+                    t--; timerEl.innerText = t;
+                    if(t <= 0) { clearInterval(interval); document.getElementById('ad-overlay').classList.add('hidden'); if(callback) callback(); }
+                }, 1000);
+            }
+        };
+
+        const worldMenu = {
+            open() {
+                const grid = document.getElementById('world-grid');
+                grid.innerHTML = '';
+                const progress = Store.data.worldProgress;
+                const active = Store.data.activeWorld;
+                
+                WORLDS.forEach((w, i) => {
+                    const prevProg = i === 0 ? 100 : progress[i-1];
+                    const isUnlocked = prevProg >= 100;
+                    const currentProg = Math.min(progress[i], 100).toFixed(1);
+                    const isCompleted = currentProg >= 100;
+                    const isActive = active === i;
+                    
+                    const card = document.createElement('div');
+                    card.className = `world-card ${isActive ? 'active' : ''} ${!isUnlocked ? 'locked' : ''} ${isCompleted ? 'completed' : ''}`;
+                    if(isUnlocked) card.onclick = () => this.selectWorld(i);
+                    
+                    card.innerHTML = `
+                        <div class="world-complete-badge">100%</div>
+                        <h2 style="margin:0; color:${w.border};">${w.name}</h2>
+                        <div style="font-size:0.9rem; color:#636e72;">${!isUnlocked ? 'Locked' : (isActive ? 'Active' : 'Select')}</div>
+                        <div class="world-progress-bar">
+                            <div class="world-progress-fill-card" style="width:${currentProg}%"></div>
+                        </div>
+                        <div style="text-align:right; font-size:0.8rem; font-weight:bold; margin-top:5px;">${currentProg}%</div>
+                    `;
+                    grid.appendChild(card);
+                });
+                
+                document.getElementById('world-menu').classList.remove('hidden');
+            },
+            selectWorld(i) {
+                Store.data.activeWorld = i;
+                Store.save();
+                this.open();
+            },
+            close() {
+                document.getElementById('world-menu').classList.add('hidden');
+            }
+        };
+        window.worldMenu = worldMenu;
+
+        const saveMenu = {
+            open() { document.getElementById('save-menu').classList.remove('hidden'); document.getElementById('save-key-box').value = Store.getExportString(); },
+            close() { document.getElementById('save-menu').classList.add('hidden'); },
+            copy() {
+                const box = document.getElementById('save-key-box'); box.select();
+                document.execCommand('copy'); alert("Save Key Copied to Clipboard!");
+            },
+            load() {
+                const box = document.getElementById('save-key-box');
+                const success = Store.loadFromString(box.value);
+                if(success) { alert("Data Loaded Successfully!"); this.close(); if(!document.getElementById('shop-menu').classList.contains('hidden')) shop.render(); }
+                else alert("Invalid Save Key!");
+            }
+        };
+        window.saveMenu = saveMenu;
+
+        const rankMenu = {
+            open() {
+                const ladder = document.getElementById('rank-ladder');
+                const totalStars = Store.data.stars;
+                const currentRank = Store.getCurrentRank();
+                document.getElementById('ladder-total-stars').innerText = totalStars;
+                let html = '<div class="ladder-spine"></div>';
+                RANK_DEF.forEach((def, i) => {
+                    const isUnlocked = totalStars >= def.stars;
+                    const icon = getRankIcon(def.type);
+                    html += `<div class="rank-step ${isUnlocked ? 'active' : 'locked'}" id="rank-step-${i}">
+                            <div class="rank-info">
+                                <div style="width:30px;height:30px;">${icon}</div>
+                                <div>
+                                    <h3>${def.name}</h3>
+                                    <small>${def.stars} Stars</small>
+                                </div>
+                            </div>
+                            <div class="rank-marker">${isUnlocked ? '✓' : (i+1)}</div>
+                            <div class="rank-rewards"><div class="coin-icon" style="width:16px;height:16px;"></div>${def.reward}</div></div>`;
+                });
+                ladder.innerHTML = html;
+                document.getElementById('rank-menu').classList.remove('hidden');
+                setTimeout(() => {
+                    const el = document.getElementById(`rank-step-${currentRank.index}`);
+                    if(el) el.scrollIntoView({behavior: "smooth", block: "center"});
+                }, 100);
+            },
+            close() { document.getElementById('rank-menu').classList.add('hidden'); }
+        };
+        window.rankMenu = rankMenu;
+
+        const shop = {
+            render() {
+                const grid = document.getElementById('skin-grid');
+                grid.innerHTML = '';
+                const sorted = [...SKINS].sort((a,b) => {
+                    const ownedA = Store.data.unlocked.includes(a.id);
+                    const ownedB = Store.data.unlocked.includes(b.id);
+                    if(ownedA && !ownedB) return -1;
+                    if(!ownedA && ownedB) return 1;
+                    return 0; 
+                });
+                sorted.forEach(s => {
+                    const owned = Store.data.unlocked.includes(s.id);
+                    const equipped = Store.data.equipped === s.id;
+                    const r = RARITY[s.rarity];
+                    const el = document.createElement('div');
+                    el.className = `skin-item ${equipped?'equipped':''} ${!owned?'locked':''}`;
+                    el.onclick = () => { if(owned) { Store.data.equipped = s.id; Store.save(); this.render(); } };
+                    let faceHtml = '';
+                    if (s.type === 'face') {
+                        if (s.face === 'creeper') faceHtml = `<div class="face-creeper"><div class="fc-eye-l"></div><div class="fc-eye-r"></div><div class="fc-nose"></div><div class="fc-mouth"></div></div>`;
+                        else if (s.face === 'sus') faceHtml = `<div class="face-sus"></div>`;
+                        else if (s.face === 'ninja') faceHtml = `<div class="face-ninja"><div class="fn-slit"><div class="fn-eye-l"></div><div class="fn-eye-r"></div></div></div>`;
+                        else if (s.face === 'robot') faceHtml = `<div class="face-robot"><div class="fr-eye"><div class="fr-pupil"></div></div></div>`;
+                        else if (s.face === 'king') faceHtml = `<div class="face-king"></div><div class="fk-eyes"><div class="fk-eye"></div><div class="fk-eye"></div></div>`;
+                        // Fallbacks for others
+                    } else faceHtml = `<div class="face-eyes"></div>`;
+                    el.innerHTML = `<div class="skin-icon-container"><div class="skin-block" style="background:${s.color}"></div>${faceHtml}</div><div style="font-size:0.8rem; font-weight:bold;">${s.name}</div><div class="rarity-dot" style="background:${r.color}"></div>`;
+                    grid.appendChild(el);
+                });
+            },
+            open() { document.getElementById('shop-menu').classList.remove('hidden'); this.render(); },
+            close() { document.getElementById('shop-menu').classList.add('hidden'); },
+            buyCrate() {
+                if(Store.data.coins < 500) { alert("Not enough coins! Need 500."); return; }
+                Store.addCoins(-500);
+                const overlay = document.getElementById('crate-opening-scene');
+                const bigCrate = document.getElementById('big-crate');
+                overlay.classList.remove('hidden'); bigCrate.className = 'big-crate anim-enter';
+                setTimeout(() => {
+                    bigCrate.className = 'big-crate anim-shake'; AudioSys.play('capture');
+                    setTimeout(() => {
+                        bigCrate.className = 'big-crate anim-open'; AudioSys.play('kill');
+                        setTimeout(() => { this.openReward(); overlay.classList.add('hidden'); }, 400);
+                    }, 1000);
+                }, 600);
+            },
+            openReward() {
+                const r = Math.random();
+                let rarity = 'common';
+                if(r < 0.01) rarity = 'legendary'; else if(r < 0.10) rarity = 'epic'; else if(r < 0.40) rarity = 'rare';
+                const pool = SKINS.filter(s => s.rarity === rarity);
+                const skin = pool[Math.floor(Math.random() * pool.length)];
+                const isDup = Store.data.unlocked.includes(skin.id);
+                if(!isDup) Store.unlock(skin.id); else Store.addCoins(250); 
+                Store.addStars(10);
+                this.showRewardModal(skin, isDup); this.render();
+            },
+            showRewardModal(skin, isDup) {
+                const modal = document.getElementById('reward-modal');
+                const glow = document.getElementById('reward-glow');
+                const rInfo = RARITY[skin.rarity];
+                glow.style.background = `radial-gradient(circle, ${rInfo.color} 0%, rgba(255,255,255,0) 70%)`;
+                let faceHtml = '';
+                if (skin.type === 'face') {
+                    // Logic reuse for modal icon
+                     if (skin.face === 'creeper') faceHtml = `<div class="face-creeper"><div class="fc-eye-l"></div><div class="fc-eye-r"></div><div class="fc-nose"></div><div class="fc-mouth"></div></div>`;
+                     else if (skin.face === 'sus') faceHtml = `<div class="face-sus"></div>`;
+                     else if (skin.face === 'ninja') faceHtml = `<div class="face-ninja"><div class="fn-slit"><div class="fn-eye-l"></div><div class="fn-eye-r"></div></div></div>`;
+                     else if (skin.face === 'robot') faceHtml = `<div class="face-robot"><div class="fr-eye"><div class="fr-pupil"></div></div></div>`;
+                     else if (skin.face === 'king') faceHtml = `<div class="face-king"></div><div class="fk-eyes"><div class="fk-eye"></div><div class="fk-eye"></div></div>`;
+                } else faceHtml = `<div class="face-eyes"></div>`;
+                document.getElementById('reward-icon').innerHTML = `<div class="skin-block" style="background:${skin.color}"></div>${faceHtml}`;
+                document.getElementById('reward-name').innerText = skin.name + (isDup ? " (Duplicate +250)" : "");
+                document.getElementById('reward-rarity').innerText = rInfo.name.toUpperCase();
+                document.getElementById('reward-rarity').style.color = rInfo.color;
+                modal.classList.remove('hidden');
+            },
+            closeReward() { document.getElementById('reward-modal').classList.add('hidden'); }
+        };
+        window.shop = shop;
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x; this.y = y; this.color = color;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 0.2 + 0.05;
+                this.vx = Math.cos(angle) * speed; this.vy = Math.sin(angle) * speed;
+                this.life = 1.0; this.decay = Math.random() * 0.03 + 0.01;
+            }
+            update() { this.x += this.vx; this.y += this.vy; this.life -= this.decay; }
+            draw(ctx, zoom) {
+                ctx.globalAlpha = this.life; ctx.fillStyle = this.color;
+                const size = zoom * 0.4 * this.life;
+                ctx.fillRect(this.x * zoom, this.y * zoom, size, size);
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        class Powerup {
+            constructor(x, y, type) {
+                this.x = x; this.y = y; this.type = type; 
+                this.rotation = 0;
+            }
+            update() { this.rotation += 0.05; }
+            draw(ctx, zoom) {
+                const sx = this.x * zoom + zoom/2; const sy = this.y * zoom + zoom/2;
+                ctx.save(); ctx.translate(sx, sy); ctx.rotate(this.rotation);
+                // RANGE 4x4
+                const scale = 2.0; 
+                if (this.type === 0) { // Coin
+                    ctx.fillStyle = '#fdcb6e'; ctx.beginPath(); ctx.arc(0, 0, zoom/2 * scale, 0, Math.PI*2); ctx.fill();
+                    ctx.strokeStyle = '#d35400'; ctx.lineWidth=2; ctx.stroke();
+                    ctx.fillStyle = '#d35400'; ctx.font='bold 20px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('$',0,0);
+                } else if (this.type === 1) { // Star
+                    ctx.fillStyle = '#a29bfe'; ctx.fillRect(-zoom/3*scale, -zoom/3*scale, zoom*0.66*scale, zoom*0.66*scale);
+                } else if (this.type === 2) { // Speed
+                    ctx.fillStyle = '#00cec9'; ctx.beginPath(); ctx.moveTo(0, -zoom/2*scale); ctx.lineTo(zoom/3*scale, zoom/2*scale); ctx.lineTo(-zoom/3*scale, zoom/2*scale); ctx.fill();
+                } else if (this.type === 3) { // Shield
+                    ctx.fillStyle = '#ff7675'; ctx.beginPath(); ctx.arc(0, 0, zoom/2*scale, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font='bold 20px Arial'; ctx.fillText('S', -6, 6);
+                } else if (this.type === 4) { // Freeze
+                    ctx.fillStyle = '#74b9ff'; ctx.fillRect(-zoom/3*scale, -zoom/3*scale, zoom*0.66*scale, zoom*0.66*scale); ctx.fillStyle = '#fff'; ctx.font='bold 20px Arial'; ctx.fillText('F', -6, 6);
+                }
+                ctx.restore();
+            }
+        }
+
+        class Entity {
+            constructor(id, skinId) {
+                this.id = id;
+                this.skin = SKINS.find(s=>s.id===skinId) || SKINS[0];
+                this.color = this.skin.color;
+                this.angle = 0; this.x = 0; this.y = 0; this.gridX = 0; this.gridY = 0;
+                this.prevX = 0; this.prevY = 0; this.trail = []; this.alive = false;
+                this.respawnTimer = 0; this.percent = 0; this.targetAngle = 0;
+                this.name = id === 0 ? "YOU" : BOT_NAMES[id % BOT_NAMES.length];
+                this.invulnerable = 0; this.speedBoost = 0;
+            }
+            spawn(grid) {
+                let ok=false, tx, ty;
+                for(let k=0; k<50; k++) {
+                    tx = Math.floor(Math.random()*(grid.w-6))+3; ty = Math.floor(Math.random()*(grid.h-6))+3;
+                    let clear = true;
+                    for(let xx=tx-3; xx<=tx+3; xx++) { for(let yy=ty-3; yy<=ty+3; yy++) { if(grid.get(xx,yy)!==-1) clear=false; } }
+                    if(clear) { ok=true; break; }
+                }
+                if(!ok) { tx=Math.floor(grid.w/2); ty=Math.floor(grid.h/2); }
+                this.x = tx; this.y = ty; this.gridX = tx; this.gridY = ty; this.prevX = tx; this.prevY = ty;
+                this.angle = Math.random()*Math.PI*2; this.targetAngle = this.angle;
+                this.trail = []; this.alive = true;
+                this.invulnerable = 180;
+                for(let xx=tx-1; xx<=tx+1; xx++) { for(let yy=ty-1; yy<=ty+1; yy++) grid.set(xx,yy,this.id); }
+            }
+            
+            // New Method for intelligent respawn
+            respawnInTerritory(grid) {
+                let candidates = [];
+                for(let y=2; y<grid.h-2; y++) {
+                    for(let x=2; x<grid.w-2; x++) {
+                        if(grid.get(x, y) === this.id) {
+                            candidates.push({x, y});
+                        }
+                    }
+                }
+                
+                if(candidates.length > 0) {
+                    const spot = candidates[Math.floor(Math.random() * candidates.length)];
+                    this.x = spot.x; this.y = spot.y;
+                    this.gridX = spot.x; this.gridY = spot.y;
+                    this.prevX = spot.x; this.prevY = spot.y;
+                } else {
+                    this.spawn(grid);
+                    return;
+                }
+                
+                this.angle = Math.random()*Math.PI*2; 
+                this.targetAngle = this.angle;
+                this.trail = []; 
+                this.alive = true;
+                this.invulnerable = 180;
+            }
+        }
+
+        class Grid {
+            constructor(size) { this.w = size; this.h = size; this.data = new Int8Array(size*size).fill(-1); }
+            get(x,y) { if(x<0||x>=this.w||y<0||y>=this.h) return -2; return this.data[y*this.w+x]; }
+            set(x,y,v) { if(x>=0&&x<this.w&&y>=0&&y<this.h) this.data[y*this.w+x]=v; }
+            fill(entity) {
+                entity.trail.forEach(t => this.set(t.x, t.y, entity.id));
+                const visited = new Uint8Array(this.w*this.h); const q = [];
+                const add = (x,y) => { const i = y*this.w+x; if(this.data[i] !== entity.id) { visited[i]=1; q.push(i); } };
+                for(let i=0; i<this.w; i++) { add(i,0); add(i,this.h-1); }
+                for(let i=1; i<this.h-1; i++) { add(0,i); add(this.w-1,i); }
+                let head = 0;
+                while(head < q.length) {
+                    const idx = q[head++]; const cx = idx%this.w; const cy = Math.floor(idx/this.w);
+                    if(cx>0){ const ni=idx-1; if(!visited[ni] && this.data[ni]!==entity.id){ visited[ni]=1; q.push(ni); }}
+                    if(cx<this.w-1){ const ni=idx+1; if(!visited[ni] && this.data[ni]!==entity.id){ visited[ni]=1; q.push(ni); }}
+                    if(cy>0){ const ni=idx-this.w; if(!visited[ni] && this.data[ni]!==entity.id){ visited[ni]=1; q.push(ni); }}
+                    if(cy<this.h-1){ const ni=idx+this.w; if(!visited[ni] && this.data[ni]!==entity.id){ visited[ni]=1; q.push(ni); }}
+                }
+                let captured = 0;
+                for(let i=0; i<this.data.length; i++) {
+                    if(!visited[i] && this.data[i] !== entity.id) {
+                        const kx = i%this.w, ky = Math.floor(i/this.w);
+                        if (Math.random() < 0.2) game.spawnParticles(kx, ky, entity.color, 1);
+                        game.killAt(kx, ky, entity.id);
+                        this.data[i] = entity.id;
+                        captured++;
+                    }
+                }
+                entity.trail = [];
+                return captured;
+            }
+        }
+
+        const game = {
+            canvas: document.getElementById('gameCanvas'),
+            ctx: document.getElementById('gameCanvas').getContext('2d'),
+            grid: null, player: null, bots: [], state: 'MENU', sessionCoins: 0, loopId: null,
+            moveSpeed: 0.15, particles: [], shake: 0, dominationMode: false, hasRevived: false,
+            powerups: [], bonusTimer: 0, freezeTimer: 0, freezeOwnerId: -1,
+
+            init() {
+                Store.init(); AudioSys.init(); this.resize();
+                AdManager.init();
+                window.onresize = () => this.resize();
+                this.input();
+                if('ontouchstart' in window) document.getElementById('mobile-controls').style.display='block';
+                this.loopId = requestAnimationFrame(t => this.loop(t));
+            },
+            
+            resize() { this.canvas.width = window.innerWidth; this.canvas.height = window.innerHeight; },
+
+            input() {
+                window.onmousemove = e => {
+                    if(!this.player || !this.player.alive) return;
+                    const cx = window.innerWidth/2; const cy = window.innerHeight/2;
+                    this.player.targetAngle = Math.atan2(e.clientY - cy, e.clientX - cx);
+                };
+                const joy = document.getElementById('joystick'); const stick = document.getElementById('stick');
+                let startX, startY;
+                joy.ontouchstart = e => { e.preventDefault(); startX=e.touches[0].clientX; startY=e.touches[0].clientY; };
+                joy.ontouchmove = e => {
+                    e.preventDefault(); const dx = e.touches[0].clientX - startX; const dy = e.touches[0].clientY - startY;
+                    const dist = Math.min(30, Math.hypot(dx,dy)); const ang = Math.atan2(dy,dx);
+                    stick.style.transform = `translate(${Math.cos(ang)*dist}px, ${Math.sin(ang)*dist}px)`;
+                    if(Math.hypot(dx,dy) > 10 && this.player) this.player.targetAngle = ang;
+                };
+                joy.ontouchend = () => stick.style.transform = 'translate(0,0)';
+            },
+
+            start() {
+                this.grid = new Grid(60);
+                this.player = new Entity(0, Store.data.equipped);
+                this.bots = [];
+                for(let i=1; i<=7; i++) { this.bots.push(new Entity(i, SKINS[Math.floor(Math.random()*SKINS.length)].id)); }
+                this.player.spawn(this.grid); this.bots.forEach(b => b.spawn(this.grid));
+                this.sessionCoins = 0; this.state = 'PLAY'; this.lastTime = performance.now(); this.acc = 0;
+                this.dominationMode = false; this.hasRevived = false;
+                this.powerups = [];
+                this.freezeTimer = 0;
+                document.getElementById('start-menu').classList.add('hidden');
+                document.getElementById('pause-menu').classList.add('hidden');
+                document.getElementById('domination-mode').classList.remove('active');
+                document.getElementById('bonus-ui').style.display = 'none';
+                document.getElementById('kill-feed').innerHTML = '';
+            },
+
+            spawnParticles(x, y, color, count) {
+                for(let i=0; i<count; i++) this.particles.push(new Particle(x, y, color));
+            },
+
+            spawnPowerup() {
+                if(this.powerups.length < 5 || this.state === 'BONUS') {
+                    const x = Math.floor(Math.random()*58)+1;
+                    const y = Math.floor(Math.random()*58)+1;
+                    const type = Math.floor(Math.random()*5); // 0-4 Now!
+                    this.powerups.push(new Powerup(x, y, type));
+                }
+            },
+
+            startRevive() {
+                this.state = 'AD'; 
+                AdManager.showRewardAd(
+                    () => { this.revivePlayer(); },
+                    () => { this.state = 'OVER'; }
+                );
+            },
+
+            revivePlayer() {
+                this.state = 'PLAY';
+                this.hasRevived = true;
+                this.lastTime = performance.now();
+                document.getElementById('pause-menu').classList.add('hidden');
+                this.player.respawnInTerritory(this.grid);
+            },
+            
+            startBonusRound() {
+                this.state = 'BONUS';
+                this.bonusTimer = 5 * 60; // 5 seconds at 60fps logic
+                document.getElementById('domination-mode').classList.remove('active');
+                document.getElementById('bonus-ui').style.display = 'block';
+                this.msg("100% CONQUERED! BONUS TIME!");
+                // Kill all bots
+                this.bots.forEach(b => { if(b.alive) this.kill(b); });
+                // Spawn lots of loot
+                for(let i=0; i<20; i++) this.spawnPowerup();
+            },
+
+            loop(now) {
+                requestAnimationFrame(t => this.loop(t));
+                if(this.state !== 'PLAY' && this.state !== 'BONUS') return;
+                const dt = now - this.lastTime; this.lastTime = now; this.acc += dt;
+                const step = 1000/60;
+                while(this.acc >= step) { this.update(); this.acc -= step; }
+                this.render(this.acc / step);
+            },
+
+            update() {
+                // Freeze Timer Logic
+                if (this.freezeTimer > 0) this.freezeTimer--;
+
+                if (this.state === 'BONUS') {
+                    this.bonusTimer--;
+                    document.getElementById('bonus-timer').innerText = Math.ceil(this.bonusTimer/60);
+                    if (this.bonusTimer % 10 === 0) this.spawnPowerup();
+                    this.updateEntity(this.player, true);
+                    this.powerups.forEach(p => p.update());
+                    if (this.bonusTimer <= 0) {
+                         this.gameOver(100);
+                    }
+                    return;
+                }
+                
+                // Domination Check
+                if (this.player.percent >= 99.9) { // Using 99.9 for float safety
+                     this.startBonusRound();
+                     return;
+                }
+
+                if (this.player.percent > 60 && !this.dominationMode) {
+                    this.dominationMode = true;
+                    document.getElementById('domination-mode').classList.add('active');
+                    this.msg("DOMINATION MODE: NO MORE SPAWNS");
+                    this.shake = 20;
+                }
+                if(Math.random() < 0.005) this.spawnPowerup();
+
+                this.updateEntity(this.player, true);
+                this.bots.forEach(b => {
+                    if(b.alive) {
+                        // FIX AI SPIN: Safe target logic
+                        const lx = b.x + Math.cos(b.angle) * 3;
+                        const ly = b.y + Math.sin(b.angle) * 3;
+                        let danger = false;
+                        
+                        // Wall detection
+                        if(lx < 2 || lx >= 58 || ly < 2 || ly >= 58) danger = true;
+                        
+                        // Self-trail detection
+                        if(!danger && b.trail.length > 5) {
+                           for(const t of b.trail) {
+                               if(Math.abs(t.x - lx) < 2 && Math.abs(t.y - ly) < 2) { danger = true; break; }
+                           }
+                        }
+
+                        if(danger) {
+                            // Instead of adding relative angle (which causes spin),
+                            // Set target to center of map (safe zone)
+                            const target = Math.atan2(30 - b.y, 30 - b.x);
+                            // Smoothly steer towards safe target
+                            let diff = target - b.angle;
+                            while(diff < -Math.PI) diff += Math.PI*2; while(diff > Math.PI) diff -= Math.PI*2;
+                            b.targetAngle = b.angle + diff; // Override current target
+                        } else {
+                            // Standard wander
+                            if(Math.random()<0.05) b.targetAngle += (Math.random()-0.5)*1.0;
+                        }
+                    }
+                    this.updateEntity(b, false);
+                });
+                
+                this.bots.forEach(b => { 
+                    if(!b.alive) {
+                        if (this.player.percent > 60) return; 
+                        if (b.respawnTimer-- <= 0) b.spawn(this.grid); 
+                    }
+                });
+                
+                for(let i=this.particles.length-1; i>=0; i--) {
+                    this.particles[i].update();
+                    if(this.particles[i].life <= 0) this.particles.splice(i, 1);
+                }
+                this.powerups.forEach(p => p.update());
+                if (this.shake > 0) this.shake -= 0.5;
+                this.calcStats();
+            },
+
+            updateEntity(e, isP) {
+                if(!e.alive) return;
+                
+                // Freeze check
+                if (this.freezeTimer > 0 && e.id !== this.freezeOwnerId) return;
+
+                if(e.invulnerable > 0) e.invulnerable--;
+                if(e.speedBoost > 0) e.speedBoost--;
+
+                let diff = e.targetAngle - e.angle;
+                while(diff < -Math.PI) diff += Math.PI*2; while(diff > Math.PI) diff -= Math.PI*2;
+                e.angle += diff * 0.1;
+                e.prevX = e.x; e.prevY = e.y;
+                
+                let currentSpeed = this.moveSpeed;
+                if(e.speedBoost > 0) currentSpeed *= 1.5;
+
+                let nx = e.x + Math.cos(e.angle)*currentSpeed;
+                let ny = e.y + Math.sin(e.angle)*currentSpeed;
+                
+                if(nx<0) nx=0; if(nx>=60) nx=59.9; if(ny<0) ny=0; if(ny>=60) ny=59.9;
+                
+                e.x = nx; e.y = ny;
+                const gx = Math.floor(e.x), gy = Math.floor(e.y);
+                
+                for(let i=this.powerups.length-1; i>=0; i--) {
+                    const p = this.powerups[i];
+                    
+                    // COLLISION FIX: Range increased to 2.5 (approx 4x4)
+                    if(Math.abs(p.x - e.x) < 2.5 && Math.abs(p.y - e.y) < 2.5) {
+                        // Apply effect based on type
+                        if(p.type===0 && isP) { this.sessionCoins+=50; this.msg("+50 Coins"); }
+                        else if(p.type===1 && isP) { Store.addStars(5); this.msg("+5 Stars"); }
+                        else if(p.type===2) { e.speedBoost = 300; if(isP) this.msg("SPEED UP!"); }
+                        else if(p.type===3) { e.invulnerable = 600; if(isP) this.msg("SHIELDED (10s)"); }
+                        else if(p.type===4) { 
+                            this.freezeTimer = 300; 
+                            this.freezeOwnerId = e.id; 
+                            if(isP) this.msg("ENEMIES FROZEN!"); 
+                        }
+                        
+                        if(isP) AudioSys.play('coin');
+                        this.powerups.splice(i, 1);
+                    }
+                }
+                
+                if(gx!==e.gridX || gy!==e.gridY) {
+                    e.gridX = gx; e.gridY = gy;
+                    this.checkCol(e, gx, gy);
+                    if(!e.alive) return;
+                    
+                    if(this.grid.get(gx,gy) === e.id) {
+                        if(e.trail.length > 0) {
+                            const count = this.grid.fill(e);
+                            if(count>0) {
+                                AudioSys.play('capture');
+                                this.shake = 5;
+                                if(isP) { this.sessionCoins += Math.ceil(count/2); this.msg(`+${Math.ceil(count/2)} Coins`); }
+                            }
+                        }
+                    } else {
+                        if(e.trail.length===0 || (e.trail[e.trail.length-1].x!==gx || e.trail[e.trail.length-1].y!==gy))
+                            e.trail.push({x:gx, y:gy});
+                    }
+                }
+            },
+            
+            checkCol(self, x, y) {
+                [this.player, ...this.bots].forEach(other => {
+                    if(!other.alive) return;
+                    for(let i=0; i<other.trail.length; i++) {
+                        if(other===self && i>=other.trail.length-2) continue;
+                        if(other.trail[i].x===x && other.trail[i].y===y) {
+                            if(other===self) this.kill(self);
+                            else {
+                                this.kill(other, self); 
+                                if(self===this.player) { this.sessionCoins+=50; this.msg("+50 Coins"); AudioSys.play('coin'); }
+                            }
+                            return;
+                        }
+                    }
+                    if(other!==self && other.gridX===x && other.gridY===y) {
+                        const selfInv = self.invulnerable > 0;
+                        const otherInv = other.invulnerable > 0;
+                        if (selfInv && !otherInv) { this.kill(other, self); return; }
+                        if (otherInv && !selfInv) { this.kill(self, other); return; }
+                        if (selfInv && otherInv) return;
+
+                        const owner = this.grid.get(x,y);
+                        if(owner===self.id) this.kill(other, self); 
+                        else if(owner===other.id) this.kill(self, other);
+                        else { this.kill(self); this.kill(other); }
+                    }
+                });
+            },
+            
+            killAt(x, y, killerId) {
+                const killer = (killerId === 0) ? this.player : this.bots.find(b => b.id === killerId);
+                
+                if(this.player.alive && this.player.gridX===x && this.player.gridY===y && this.player.invulnerable<=0) this.kill(this.player, killer);
+                this.bots.forEach(b => { if(b.id!==killerId && b.alive && b.gridX===x && b.gridY===y && b.invulnerable<=0) this.kill(b, killer); });
+            },
+
+            kill(e, killer) {
+                if(!e.alive) return;
+                const score = e.percent;
+                e.alive = false; 
+                e.respawnTimer = 300 + Math.random() * 200; 
+                this.spawnParticles(e.x, e.y, e.color, 20);
+                this.shake = 10;
+                
+                if (e.id === 0) {
+                    // Player Death: Don't clear land for revive
+                } else {
+                    if (killer && killer.id !== e.id) {
+                         this.grid.data.forEach((v,i) => { if(v===e.id) this.grid.data[i] = killer.id; });
+                         if (killer === this.player) this.msg("TERRITORY SEIZED!");
+                    } else { 
+                         this.grid.data.forEach((v,i) => { if(v===e.id) this.grid.data[i]=-1; });
+                    }
+                }
+                
+                AudioSys.play('kill');
+                if(e === this.player) this.gameOver(score);
+                else this.msg(`${e.name} Eliminated`);
+            },
+            
+            calcStats() {
+                const cts = new Uint32Array(8);
+                for(let i=0; i<3600; i++) { const id=this.grid.data[i]; if(id>=0&&id<8) cts[id]++; }
+                this.player.percent = (cts[0]/3600)*100;
+                this.bots.forEach(b => b.percent = (cts[b.id]/3600)*100);
+                document.getElementById('score-display').innerText = this.player.percent.toFixed(1) + "%";
+                document.getElementById('coin-display').innerText = Store.data.coins + this.sessionCoins;
+                const top = [this.player, ...this.bots].sort((a,b)=>b.percent-a.percent).slice(0,5);
+                document.getElementById('leaderboard').innerHTML = top.map(e => `
+                    <div class="lb-entry">
+                        <div style="display:flex;align-items:center;">
+                            <div class="lb-color" style="background:${e.color}"></div>
+                            ${e.name}
+                        </div>
+                        <div>${e.percent.toFixed(1)}%</div>
+                    </div>`).join('');
+            },
+            
+            msg(txt) {
+                const d = document.createElement('div'); d.className='kill-msg'; d.innerText=txt;
+                document.getElementById('kill-feed').appendChild(d); setTimeout(()=>d.remove(), 2000);
+            },
+
+            gameOver(finalScore) {
+                this.state = 'OVER';
+                Store.addCoins(this.sessionCoins);
+                Store.addWorldProgress(finalScore);
+                const stars = Math.ceil(finalScore);
+                Store.addStars(stars);
+                setTimeout(() => {
+                    document.getElementById('pause-menu').classList.remove('hidden');
+                    document.getElementById('pause-title').innerText = "GAME OVER";
+                    document.getElementById('pause-score').innerText = finalScore.toFixed(1) + "%";
+                    document.getElementById('pause-rewards').innerHTML = `+${this.sessionCoins} Coins<br>+${stars} Stars ★`;
+                    
+                    if(!this.hasRevived) document.getElementById('btn-revive').style.display = 'block';
+                    else document.getElementById('btn-revive').style.display = 'none';
+                    
+                    document.getElementById('btn-resume').style.display = 'none';
+                }, 1000);
+            },
+            
+            toMenu() {
+                // If quitting, clear player land and commit score
+                this.grid.data.forEach((v,i) => { if(v===0) this.grid.data[i]=-1; });
+                
+                Store.addCoins(this.sessionCoins);
+                Store.addWorldProgress(this.player.percent);
+                Store.addStars(Math.ceil(this.player.percent));
+                
+                document.getElementById('pause-menu').classList.add('hidden');
+                document.getElementById('start-menu').classList.remove('hidden');
+                this.state = 'MENU';
+            },
+
+            render(alpha) {
+                const ctx = this.ctx; const cw = this.canvas.width; const ch = this.canvas.height;
+                ctx.clearRect(0,0,cw,ch);
+                const p = this.player;
+                const lx = p.prevX + (p.x-p.prevX)*alpha; const ly = p.prevY + (p.y-p.prevY)*alpha;
+                const zoom = 30; const camX = cw/2 - lx*zoom; const camY = ch/2 - ly*zoom;
+                
+                ctx.save(); 
+                
+                if(this.shake > 0) {
+                    ctx.translate((Math.random()-0.5)*this.shake, (Math.random()-0.5)*this.shake);
+                }
+                
+                ctx.translate(camX, camY);
+                
+                // Background Pattern from World Theme
+                const activeW = WORLDS[Store.data.activeWorld];
+                ctx.fillStyle = activeW.color; ctx.fillRect(0,0, 60*zoom, 60*zoom);
+                ctx.strokeStyle = 'rgba(0,0,0,0.05)'; ctx.lineWidth = 1; ctx.beginPath();
+                for(let i=0; i<=60; i++) { ctx.moveTo(i*zoom,0); ctx.lineTo(i*zoom, 60*zoom); ctx.moveTo(0,i*zoom); ctx.lineTo(60*zoom, i*zoom); }
+                ctx.stroke();
+
+                for(let y=0; y<60; y++) { for(let x=0; x<60; x++) {
+                    const id = this.grid.get(x,y);
+                    if(id!==-1) {
+                        const e = (id===0?this.player:this.bots.find(b=>b.id===id));
+                        if(e) { ctx.fillStyle=e.color; ctx.globalAlpha=0.4; ctx.fillRect(x*zoom, y*zoom, zoom+1, zoom+1); ctx.globalAlpha=1.0; }
+                    }
+                }}
+
+                this.powerups.forEach(pu => pu.draw(ctx, zoom));
+
+                const drawTrail = (e) => {
+                    if(e.trail.length===0) return;
+                    ctx.fillStyle = e.color;
+                    ctx.globalAlpha = 0.5;
+                    e.trail.forEach(t => {
+                        ctx.fillRect(t.x*zoom, t.y*zoom, zoom, zoom);
+                    });
+                    ctx.globalAlpha = 1.0;
+                };
+                this.bots.forEach(b => { if(b.alive) drawTrail(b); });
+                if(p.alive) drawTrail(p);
+
+                const drawHead = (e, isP) => {
+                    const ex = e.prevX + (e.x-e.prevX)*alpha; const ey = e.prevY + (e.y-e.prevY)*alpha;
+                    const sx = ex*zoom + zoom/2; const sy = ey*zoom + zoom/2;
+                    ctx.save(); ctx.translate(sx, sy); ctx.rotate(e.angle + Math.PI/2);
+                    
+                    if(e.invulnerable > 0 && Math.floor(Date.now()/100)%2===0) ctx.globalAlpha = 0.5;
+
+                    ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.fillRect(-zoom/2+4, -zoom/2+4, zoom, zoom);
+                    
+                    ctx.fillStyle = e.color; ctx.fillRect(-zoom/2, -zoom/2, zoom, zoom);
+                    ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(-zoom/2, zoom/2-4, zoom, 4);
+                    if(e.skin.type==='face' && e.skin.face==='creeper') {
+                        ctx.fillStyle='#000'; ctx.fillRect(-8,-8,5,5); ctx.fillRect(3,-8,5,5); ctx.fillRect(-3,-2,6,4); ctx.fillRect(-8,2,4,6); ctx.fillRect(4,2,4,6);
+                    } else if(e.skin.type==='face' && e.skin.face==='sus') {
+                        ctx.fillStyle='#dfe6e9'; ctx.fillRect(-8,-5,16,8);
+                    } else {
+                        ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(-7,-2,4,0,7); ctx.arc(7,-2,4,0,7); ctx.fill();
+                    }
+                    
+                    // Frozen Effect
+                    if(game.freezeTimer > 0 && e.id !== game.freezeOwnerId) {
+                         ctx.fillStyle = 'rgba(116, 185, 255, 0.6)';
+                         ctx.fillRect(-zoom/2, -zoom/2, zoom, zoom);
+                    }
+
+                    ctx.restore();
+                    ctx.globalAlpha = 1.0;
+                    if(isP || e.percent > 5) {
+                        ctx.fillStyle='#2d3436'; ctx.font='bold 12px Nunito'; ctx.textAlign='center';
+                        ctx.fillText(e.name, sx, sy-20);
+                    }
+                };
+                this.bots.forEach(b => { if(b.alive) drawHead(b, false); });
+                if(p.alive) drawHead(p, true);
+                
+                this.particles.forEach(p => p.draw(ctx, zoom));
+
+                ctx.strokeStyle = activeW.border; ctx.lineWidth = 5; ctx.strokeRect(0,0,60*zoom, 60*zoom);
+                ctx.restore();
+            }
+        };
+
+        window.game = game;
+        window.onload = () => game.init();
+
+    </script>
+</body>
+</html>
